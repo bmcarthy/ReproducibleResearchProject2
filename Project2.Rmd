@@ -1,0 +1,226 @@
+---
+title: "Project2"
+author: "Blane McCarthy"
+date: "February 22, 2016"
+output: html_document
+---
+
+# Reproducible Research Project 2
+
+## Coursera Johns Hopkins University Reproducible Research course project 2
+
+## Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+Data
+
+The data for this assignment come in the form of a comma-separated-value file compressed via the bzip2 algorithm. It was downloaded from the course web site at the following URL:  
+
+•	Storm Data [47Mb]  
+    https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
+
+Documentation pertaining to the data was also downloaded from the course web site at the following URLs: 
+
+•	National Weather Service Storm Data Documentation 
+    https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
+
+•	National Climatic Data Center Storm Events FAQ
+    https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf
+
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+
+## Assignment
+
+The basic goal of this assignment is to explore the NOAA Storm Database and answer some basic questions about severe weather events. You must use the database to answer the questions below and show the code for your entire analysis. Your analysis can consist of tables, figures, or other summaries. You may use any R package you want to support your analysis.
+
+
+title that briefly summarizes the data analysis
+
+<br>
+
+# Analysis of Population Health and Economic Impacts of Weather Events 1950 - 2011
+
+synopsis that describes and summarizes the data analysis in less than 10 sentences
+
+<br>
+
+##Data Processing
+
+describes how the data were loaded into R and processed for analysis
+
+Data for this analysis were acquired from the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database.  It is available in the form of a compressed comma-separated-value file which has been compressed using the bzip2 algorithm. The data were downloaded from the Coursera web site at the following URL:  
+
+•	Storm Data [47Mb]  
+    https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
+
+The bzfile was used to connect to the file and then the read.table command was used to read the rows of data into a data frame. An initial extract of 10,000 rows was reviewed to gain a better sense of the data.  Based on that initial analysis the col.classes parameter of the read.table command was used to extract those columns that appeared to be relevant to the desired analysis. This extract included all rows from the source file.  Appropriate column names were then assigned to the data frame.
+
+```{r, cache=TRUE}
+# setwd("~/Desktop/Coursera/Reproducible 
+# Research/Week4/Repository/ReproducibleResearchProject2")
+con <-bzfile("repdata_data_StormData.csv.bz2", "r")
+
+StormData10000 <- read.table(con,header=TRUE,sep = ",", quote = "\"",nrows=10000)
+classes <- sapply(StormData10000, class)
+
+StormDataExtract <- read.table(con,header=TRUE,sep = ",", quote = "\"", 
+      colClasses=c("NULL", "factor", "NULL", "NULL" , "NULL", "NULL", 
+                   "factor", "factor" , "NULL" , "NULL", "NULL",
+                   "NULL" , "NULL", "NULL" , "NULL", "NULL", "NULL", 
+                   "NULL", "NULL", "NULL", "NULL", "NULL", 
+                   "numeric" , "numeric", "numeric", "factor", "numeric", 
+                   "factor", "NULL", "NULL" , "NULL" , "NULL", 
+                   "NULL", "NULL" , "NULL", "NULL" , "NULL"), 
+      blank.lines.skip = FALSE)
+ 
+colnames(StormDataExtract)<-c("BGN_DATE","STATE", "EVTYPE", "FATALITIES", "INJURIES", "PROPDMG",
+                              "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")
+```
+
+<br>
+
+After extracting the data the property and storm damage values were multiplied by an appropriate order of magnitude based upon the value specified in the exponent fields.  For example if the exponent value was "K" or "k" the damage amount was multiplied by 1000.  This was done to facilitate analysis of the economic impact of weather event related damage.
+
+```{r,cache=TRUE}
+nbrrows<-nrow(StormDataExtract)
+
+PropDamage<-vector("numeric", length = nbrrows)
+CropDamage<-vector("numeric", length = nbrrows)
+
+for (i in 1:nbrrows) {
+   if (is.na (StormDataExtract$PROPDMG[i])) {
+       PropDamage[i]<-0
+       }
+   else
+      if (StormDataExtract$PROPDMG[i]==0) {
+          PropDamage[i]<-0
+          }
+      else
+         if (StormDataExtract$PROPDMGEXP[i] == "K" | StormDataExtract$PROPDMGEXP[i] == "k") {
+             PropDamage[i]<-StormDataExtract$PROPDMG[i] * 1000
+             }
+         else
+            if (StormDataExtract$PROPDMGEXP[i] == "M" | StormDataExtract$PROPDMGEXP[i] == "m") {
+                PropDamage[i]<-StormDataExtract$PROPDMG[i] * 1000000
+                }
+            else
+               if (StormDataExtract$PROPDMGEXP[i] == "B" | StormDataExtract$PROPDMGEXP[i] == "b") {
+                   PropDamage[i]<-StormDataExtract$PROPDMG[i] * 1000000000
+                   }
+               else {
+                   PropDamage[i]<-StormDataExtract$PROPDMG[i]
+                   }  
+}
+
+```
+
+```{r, cache=TRUE}
+for (i in 1:nbrrows) {
+   if (is.na (StormDataExtract$CROPDMG[i])) {
+       CropDamage[i]<-0
+       }
+  else
+     if (StormDataExtract$CROPDMG[i]==0) {
+         CropDamage[i]<-0
+         }
+     else
+        if (StormDataExtract$CROPDMGEXP[i] == "K" | StormDataExtract$CROPDMGEXP[i] == "k") {
+            CropDamage[i]<-StormDataExtract$CROPDMG[i] * 1000
+            }
+        else
+           if (StormDataExtract$CROPDMGEXP[i] == "M" | StormDataExtract$CROPDMGEXP[i] == "m") {
+               CropDamage[i]<-StormDataExtract$CROPDMG[i] * 1000000
+               }
+           else
+              if (StormDataExtract$CROPDMGEXP[i] == "B" | StormDataExtract$CROPDMGEXP[i] == "b") {
+                  CropDamage[i]<-StormDataExtract$CROPDMG[i] * 1000000000
+                  }
+              else {
+                  CropDamage[i]<-StormDataExtract$CROPDMG[i]
+                  }  
+}
+
+```
+
+<br>
+
+Because the precise date and time of casualties and property damage were not readily available the event beginning date was used in order to assign a consistent event year to each event.  The begin date was first checked for missing values. None were found the two digit year was then stripped from the data and then for years greater than 49 the century was set to 1900 and for years less than 50 the century was set to 2000.  
+
+The cbind function was used to combine the original data, the expanded damage and fatalities values, and the event year into a new data frame for analysis. 
+
+```{r}
+sum(is.na(StormDataExtract$BGN_DATE))
+
+StormDatelt<-as.POSIXlt(as.data.frame(strptime(StormDataExtract$BGN_DATE, "%m/%d/%Y %H:%M:%S"))[,1])
+
+StormYear<-StormDatelt$year
+
+nbrrows<-length(StormYear)
+
+for (i in 1:nbrrows) {
+   if (StormYear[i]>49)
+      {StormYear[i]<-StormYear[i]+1900}
+   else
+      {StormYear[i]<-StormYear[i]+2000}
+}
+
+BeginYear<-as.data.frame(StormYear)
+StormData<-cbind.data.frame(StormDataExtract,PropDamage,CropDamage,StormYear)
+
+```
+
+<br>
+
+Fatalities, injuries, property damage, and crop damage were summarized by year in order to facilitate analysis of the annual population health and economic impacts of weather events.
+
+```{r}
+PropertyDamageByYear<-tapply(StormData$PropDamage, StormData$StormYear, sum)
+FatalitiesByYear<-tapply(StormData$FATALITIES, StormData$StormYear, sum)
+InjuriesByYear<-tapply(StormData$INJURIES, StormData$StormYear, sum)
+CropDamageByYear<-tapply(StormData$CropDamage, StormData$StormYear, sum)
+```
+a section titled "Results" where the main results are presented
+which types of events are most harmful to population health
+which types of events have the greatest economic consequences
+
+## Results
+
+figure(s) have descriptive captions
+
+```{r}
+
+PlotData<-rbind(CropDamageByYear,
+                PropertyDamageByYear)
+# PlotData94<-PlotData[,-(1:43)]
+# PlotData2<-PlotData94/1000000000
+PlotData2<-PlotData/100000000
+
+barplot (as.matrix(PlotData2),args.legend = list(x = "topleft"),
+        legend.text = c("Crop", "Property"), 
+        col=c("green", "blue"), 
+        main="Total Damage and Fatalities by Year 1950-2011",
+        xlab="Year Event Began", ylab="Total Damage in USD Billions")
+par(new=TRUE)
+plot(names(FatalitiesByYear), FatalitiesByYear, type="l", axes=F,
+     xlab="", ylab="",col="red",lwd=2)
+axis(4, col="red", col.axis="red")
+mtext("Total Fatalities",side=4,line=3,col="red")
+
+```
+
+
+```{r}
+library(lattice)
+
+FatalitiesByEvent <- tapply(StormData$FATALITIES, StormData$EVTYPE, sum)
+FatalitiesByEvent <- sort(FatalitiesByEvent,decreasing=T)
+barchart(FatalitiesByEvent[1:12],col=palette(), main="Twelve Most Destructive Weather Events Based on Fatalities", xlab="Total Fatalities")
+
+PropertyDamageByEvent <- tapply(StormData$PropDamage, StormData$EVTYPE, sum)
+PropertyDamageByEvent <- PropertyDamageByEvent/1000000000
+PropertyDamageByEvent <- sort(PropertyDamageByEvent,decreasing=T)
+barchart(PropertyDamageByEvent[1:12],col=palette(),main="Twelve Most Destructive Weather Events Based on Property Damage", xlab="Total Damage in Billions")
+
+```
